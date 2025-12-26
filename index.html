@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Архитектура & Стратегия 2025</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --panel-bg: rgba(30, 41, 59, 0.85);
+            --accent: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.3);
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --success: #4ade80;
+            --danger: #f87171;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            margin: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Изменено с center, чтобы на мобилках контент шел сверху */
+            padding: 20px 0;
+        }
+
+        /* Matrix Background Fixed */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Main Container */
+        .container {
+            position: relative;
+            z-index: 10;
+            width: 95%;
+            max-width: 1000px;
+            /* Убрали фиксированную высоту, теперь она растет от контента */
+            min-height: 80vh; 
+            background: var(--panel-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 40px; /* Отступ снизу для мобилок */
+        }
+
+        /* Header */
+        header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky; /* Липкий хедер */
+            top: 0;
+            background: rgba(30, 41, 59, 0.95);
+            z-index: 20;
+            border-radius: 16px 16px 0 0;
+        }
+
+        .brand {
+            font-size: 1rem;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: var(--accent);
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .brand::before {
+            content: '';
+            display: block;
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--success);
+        }
+
+        .slide-counter {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            background: rgba(255,255,255,0.05);
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        /* Slide Content Area */
+        .viewport {
+            flex: 1;
+            padding: 20px;
+            position: relative;
+        }
+
+        /* Слайды теперь не absolute, а переключаются через display: none */
+        .slide {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .slide.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Typography */
+        h1 { font-size: 1.8rem; margin: 0 0 15px 0; line-height: 1.2; }
+        h2 { font-size: 1.5rem; margin: 0 0 15px 0; color: var(--accent); }
+        h3 { font-size: 1.2rem; margin: 0 0 10px 0; color: #fff; }
+        p { font-size: 1rem; line-height: 1.6; color: var(--text-muted); margin-bottom: 20px; }
+        
+        ul { margin: 0 0 20px 0; padding-left: 20px; color: var(--text-muted); }
+        li { margin-bottom: 10px; font-size: 1rem; line-height: 1.5; }
+        strong { color: var(--text-main); }
+
+        .highlight { color: var(--accent); }
+        .danger { color: var(--danger); }
+        .success { color: var(--success); }
+
+        /* Grid Layouts - Responsive */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr; /* По умолчанию 1 колонка (мобила) */
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr 1fr; /* На планшетах и выше 2 колонки */
+            }
+            h1 { font-size: 2.5rem; }
+            .viewport { padding: 40px 60px; }
+            .brand { font-size: 1.25rem; }
+        }
+
+        /* Cards */
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: 12px;
+        }
+        
+        .card.main {
+            border: 1px solid var(--accent);
+            background: rgba(56, 189, 248, 0.05);
+        }
+
+        .card.bad {
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            background: rgba(248, 113, 113, 0.05);
+        }
+
+        .price {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #fff;
+            margin: 10px 0;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-right: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .tag.blue { background: rgba(56, 189, 248, 0.2); color: var(--accent); }
+
+        /* Footer / Nav */
+        footer {
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+            position: sticky;
+            bottom: 0;
+            background: rgba(30, 41, 59, 0.95);
+            border-radius: 0 0 16px 16px;
+            z-index: 20;
+        }
+
+        button {
+            flex: 1; /* Кнопки растягиваются */
+            background: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            touch-action: manipulation; /* Улучшает отклик на тач */
+        }
+
+        button:active { transform: scale(0.98); }
+        
+        button.primary {
+            background: var(--accent);
+            color: #0f172a;
+            border: none;
+        }
+        
+        button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    </style>
+</head>
+<body>
+
+<!-- Animated Background -->
+<canvas id="bg-canvas"></canvas>
+
+<div class="container">
+    <header>
+        <div class="brand">Project 2025</div>
+        <div class="slide-counter" id="counter">1 / 7</div>
+    </header>
+
+    <div class="viewport">
+        
+        <!-- Слайд 1: Главная -->
+        <div class="slide active" id="slide-1">
+            <div class="tag blue">Confidential</div>
+            <h1>Техническая Стратегия</h1>
+            <p>План реализации высоконагруженного аналитического сервиса.</p>
+            
+            <div class="grid-2">
+                <div class="card">
+                    <h3>⚡️ Скорость</h3>
+                    <p>Запуск <strong>MVP за 3 месяца</strong>. Архитектура Low Latency (задержка < 0.2 сек).</p>
+                </div>
+                <div class="card">
+                    <h3>🛡 Стабильность</h3>
+                    <p>Подключение <strong>2-х провайдеров</strong> и защита от накруток (Фрод-контроль).</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Слайд 2: Стек -->
+        <div class="slide" id="slide-2">
+            <h2>Технический Стек</h2>
+            <p>Гибридный подход: максимальная скорость разработки + производительность.</p>
+            
+            <div class="grid-2">
+                <div class="card">
+                    <h3>Backend & Data</h3>
+                    <ul>
+                        <li><strong class="highlight">Python (FastAPI) + NumPy</strong> — Ядро расчетов.</li>
+                        <li><strong class="highlight">Redis</strong> — Оперативная память для вилок.</li>
+                        <li><strong>PostgreSQL</strong> — Финансы и юзеры.</li>
+                        <li><strong>Docker</strong> — Инфраструктура.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>Frontend</h3>
+                    <ul>
+                        <li><strong class="highlight">SvelteKit</strong> — Сверхбыстрый интерфейс.</li>
+                        <li><strong>PWA</strong> — Работает как приложение.</li>
+                        <li><strong>WebSockets</strong> — Обновление в реал-тайме.</li>
+                    </ul>
+                </div>
+            </div>
+            <p style="font-size: 0.9rem; margin-top: 15px; opacity: 0.7;">* Kubernetes и ClickHouse намеренно отложены на v2.0.</p>
+        </div>
+
+        <!-- Слайд 3: Состав MVP -->
+        <div class="slide" id="slide-3">
+            <h2>Что входит в MVP (3 мес)</h2>
+            <p>Продукт, готовый к приему денег и трафика.</p>
+
+            <div class="grid-2">
+                <div class="card">
+                    <h3>✅ Функционал</h3>
+                    <ul>
+                        <li><strong>2 Провайдера:</strong> GoalServe + BetAPI.</li>
+                        <li><strong>Smart Flow:</strong> Лента вилок.</li>
+                        <li><strong>Нормализация:</strong> Объединение дублей.</li>
+                        <li><strong>Momentum:</strong> Индикатор активности.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h3>✅ Деньги</h3>
+                    <ul>
+                        <li><strong>Биллинг:</strong> Подписки, автосписания.</li>
+                        <li><strong>Рефералка:</strong> Холд 30 дней.</li>
+                        <li><strong>Выплаты:</strong> <span class="highlight">Ручное подтверждение</span> (Безопасность).</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Слайд 4: Сценарий 1 -->
+        <div class="slide" id="slide-4">
+            <h2>Вариант А: Один Fullstack</h2>
+            <p>Весь проект делает один разработчик.</p>
+
+            <div class="card bad">
+                <h3>⛔️ Риски</h3>
+                <ul>
+                    <li><strong>Срок MVP:</strong> <span class="danger">6 месяцев</span>.</li>
+                    <li><strong>Риск:</strong> Если разработчик заболел — бизнес встал.</li>
+                    <li><strong>Скорость:</strong> Падает в 2 раза из-за расфокуса.</li>
+                </ul>
+                <div class="price">~2.1 млн ₽</div>
+                <p class="danger">Старт продаж через полгода.</p>
+            </div>
+        </div>
+
+        <!-- Слайд 5: Сценарий 2 -->
+        <div class="slide" id="slide-5">
+            <h2>Вариант Б: Команда (Lead + Front)</h2>
+            <p>Параллельная разработка. Рекомендуемый выбор.</p>
+
+            <div class="card main">
+                <h3>✅ Преимущества</h3>
+                <ul>
+                    <li><strong>Срок MVP:</strong> <span class="success">3 месяца</span>.</li>
+                    <li><strong>Надежность:</strong> Профильные специалисты.</li>
+                    <li><strong>ROI:</strong> Окупаемость на 3 месяца раньше.</li>
+                </ul>
+                <div class="price">~1.65 млн ₽</div>
+                <p class="success">Экономия 450 000 ₽.</p>
+            </div>
+        </div>
+
+        <!-- Слайд 6: Roadmap -->
+        <div class="slide" id="slide-6">
+            <h2>Дорожная Карта</h2>
+            
+            <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 10px;">
+                <div class="card" style="border-left: 4px solid var(--accent);">
+                    <h3 style="margin-bottom: 5px">Этап 1: MVP (0 - 3 мес)</h3>
+                    <p style="margin-bottom: 5px">Команда: 1 Backend + 1 Frontend</p>
+                    <p><strong>Результат:</strong> Готовый продукт. Прием платежей. Старт рекламы.</p>
+                </div>
+
+                <div class="card" style="border-left: 4px solid #facc15; opacity: 0.9;">
+                    <h3 style="margin-bottom: 5px">Этап 2: Scale v2.0 (3 - 6 мес)</h3>
+                    <p><strong>Результат:</strong> Внедрение ClickHouse, Авто-выплаты, PWA.</p>
+                </div>
+
+                <div class="card" style="border-left: 4px solid var(--success); opacity: 0.7;">
+                    <h3 style="margin-bottom: 5px">Этап 3: Support (6+ мес)</h3>
+                    <p><strong>Результат:</strong> Проект автономен. Поддержка Backend (part-time).</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Слайд 7: Итог -->
+        <div class="slide" id="slide-7">
+            <h2>Итоговое предложение</h2>
+            <div class="grid-2">
+                <div>
+                    <h3>Мы выбираем Сценарий Б:</h3>
+                    <ul>
+                        <li>Старт спринтов: <strong>Немедленно</strong>.</li>
+                        <li>Релиз MVP: <strong>Через 12 недель</strong>.</li>
+                        <li>Стек: <strong>Python + Svelte</strong>.</li>
+                    </ul>
+                </div>
+                <div>
+                    <div class="card main">
+                        <h3>Финансы (MVP):</h3>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                            <span>Lead Backend:</span>
+                            <strong>350 000 ₽</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.2);">
+                            <span>Frontend Senior:</span>
+                            <strong>200 000 ₽</strong>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 1.1rem;">
+                            <span>Итого в месяц:</span>
+                            <span class="highlight">550 000 ₽</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 30px; text-align: center;">
+                <p class="highlight" style="font-size: 1.1rem;">Готовы приступить к настройке серверов.</p>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        <button id="prevBtn" disabled>← Назад</button>
+        <button id="nextBtn" class="primary">Далее →</button>
+    </footer>
+</div>
+
+<script>
+    /* --- Matrix Background --- */
+    const canvas = document.getElementById('bg-canvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const chars = '01';
+    const fontSize = 16; // Чуть крупнее для мобилок
+    let columns = canvas.width / fontSize;
+    const drops = [];
+
+    for (let i = 0; i < columns; i++) drops[i] = 1;
+
+    function drawMatrix() {
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.1)'; 
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#0ea5e9'; 
+        ctx.font = fontSize + 'px monospace';
+
+        for (let i = 0; i < drops.length; i++) {
+            const text = chars.charAt(Math.floor(Math.random() * chars.length));
+            ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+            if (drops[i] * fontSize > canvas.height && Math.random() > 0.98) {
+                drops[i] = 0;
+            }
+            drops[i]++;
+        }
+    }
+    setInterval(drawMatrix, 50);
+
+
+    /* --- Navigation --- */
+    const slides = document.querySelectorAll('.slide');
+    const totalSlides = slides.length;
+    let currentSlide = 0;
+    
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const counter = document.getElementById('counter');
+    const container = document.querySelector('.container');
+
+    function updateSlides() {
+        window.scrollTo({ top: 0, behavior: 'smooth' }); // Скролл наверх при переключении
+        
+        slides.forEach((slide, index) => {
+            slide.classList.remove('active');
+            if (index === currentSlide) {
+                slide.classList.add('active');
+            }
+        });
+        
+        counter.textContent = `${currentSlide + 1} / ${totalSlides}`;
+        
+        prevBtn.disabled = currentSlide === 0;
+        
+        if (currentSlide === totalSlides - 1) {
+            nextBtn.textContent = 'В начало ↻';
+        } else {
+            nextBtn.textContent = 'Далее →';
+        }
+    }
+
+    nextBtn.addEventListener('click', () => {
+        if (currentSlide < totalSlides - 1) {
+            currentSlide++;
+        } else {
+            currentSlide = 0;
+        }
+        updateSlides();
+    });
+
+    prevBtn.addEventListener('click', () => {
+        if (currentSlide > 0) {
+            currentSlide--;
+            updateSlides();
+        }
+    });
+
+</script>
+
+</body>
+</html>
